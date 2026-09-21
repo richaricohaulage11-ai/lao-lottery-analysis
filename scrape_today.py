@@ -1,9 +1,14 @@
 """
 scrape_today.py
 ----------------
-Scrapes today's (or a given date's) Lao lottery result from sanook.com and
-appends it to a CSV in the format data_loader.py expects (draw_date,
-six_digit).
+Scrapes recent Lao lottery results from sanook.com and appends any new
+ones to a CSV in the format data_loader.py expects (draw_date, six_digit).
+
+Why backfill multiple days instead of just "today":
+- The workflow may run before today's result is posted, or on a day the
+  site skips.
+- Running it once catches up on anything missed, and skips whatever is
+  already in the CSV, so it's safe to run repeatedly.
 
 Confirmed page format (verified against a live page, 16/9/69):
 
@@ -20,20 +25,23 @@ data_loader.py automatically.
 IMPORTANT: this has NOT been tested against a live network call (the
 sandbox this was written in cannot reach sanook.com). It should work
 against GitHub Actions runners, which do have normal internet access, but
-if the extraction fails, check the Action's log output (this script logs
-what it fetched and why extraction did/didn't succeed) and share it back
-for a fix.
+if extraction fails, check the Action's log output (this script logs what
+it fetched and why extraction did/didn't succeed) and share it back for a
+fix.
 
-Strategy:
-1. Build sanook's predictable date-slug URL for the target date
+Strategy per date:
+1. Build sanook's predictable date-slug URL
    (https://www.sanook.com/news/laolotto/DDMMYYYY/, Buddhist-era year)
    and follow redirects — sanook's CMS is expected to 30x-redirect this to
    the real numeric article URL (e.g. /news/9906791/).
 2. If that doesn't yield a match, fall back to fetching sanook's lottery
    section listing page and looking for a link whose text/href references
    the target date, then fetching that article instead.
-3. Extract the six-digit number via a regex anchored on the "เลข 6 ตัว"
-   label, which is the only number this project actually needs.
+3. Check the page for an explicit "no draw today" notice (e.g.
+   "งดออกรางวัล") and log that as a distinct, expected outcome rather
+   than an extraction failure.
+4. Extract the six-digit number via a regex anchored on the "เลข 6 ตัว"
+   label.
 """
 from __future__ import annotations
 
@@ -41,7 +49,6 @@ import argparse
 import csv
 import re
 import sys
-import time
 from datetime import date, datetime, timedelta
 
 import requests
@@ -55,6 +62,7 @@ HEADERS = {
 }
 
 SIX_DIGIT_RE = re.compile(r"เลข\s*6\s*ตัว\s*:?\s*(\d{6})")
+NO_DRAW_RE = re.compile(r"งดออกรางวัล|งดจำหน่าย|ไม่มีการออกรางวัล")
 LISTING_URL = "https://www.sanook.com/news/laolotto/"
 
 
@@ -67,19 +75,22 @@ def to_buddhist_slug(d: date) -> str:
 def fetch(url: str) -> BeautifulSoup | None:
     try:
         resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
-        print(f"  GET {url} -> {resp.status_code} (final url: {resp.url})")
+        print(f"    GET {url} -> {resp.status_code} (final url: {resp.url})")
         if resp.status_code != 200:
             return None
         return BeautifulSoup(resp.text, "html.parser")
     except requests.RequestException as e:
-        print(f"  GET {url} -> FAILED: {e}")
+        print(f"    GET {url} -> FAILED: {e}")
         return None
 
 
-def extract_six_digit(soup: BeautifulSoup) -> str | None:
+def extract_six_digit(soup: BeautifulSoup) -> tuple[str | None, bool]:
+    """Returns (six_digit_or_None, no_draw_detected)."""
     text = soup.get_text(" ", strip=True)
+    if NO_DRAW_RE.search(text):
+        return None, True
     match = SIX_DIGIT_RE.search(text)
-    return match.group(1) if match else None
+    return (match.group(1) if match else None), False
 
 
 def find_via_listing(target_date: date) -> str | None:
@@ -89,7 +100,6 @@ def find_via_listing(target_date: date) -> str | None:
     if soup is None:
         return None
 
-    # Thai date strings this might appear as, e.g. "16/9/69" or "16 ก.ย. 69"
     be_year_2digit = str((target_date.year + 543) % 100).zfill(2)
     date_needle = f"{target_date.day}/{target_date.month}/{be_year_2digit}"
 
@@ -98,81 +108,121 @@ def find_via_listing(target_date: date) -> str | None:
             href = a["href"]
             if href.startswith("/"):
                 href = "https://www.sanook.com" + href
-            print(f"  Listing match for {date_needle}: {href}")
+            print(f"    Listing match for {date_needle}: {href}")
             return href
-    print(f"  No listing link found containing '{date_needle}'")
+    print(f"    No listing link found containing '{date_needle}'")
     return None
 
 
-def scrape_for_date(target_date: date) -> str | None:
+def scrape_for_date(target_date: date) -> tuple[str | None, str]:
+    """Returns (six_digit_or_None, status) where status is one of:
+    'found', 'no_draw', 'not_found'."""
     slug_url = f"https://www.sanook.com/news/laolotto/{to_buddhist_slug(target_date)}/"
-    print(f"Attempt 1: date-slug URL")
+    print("  Attempt 1: date-slug URL")
     soup = fetch(slug_url)
     if soup:
-        six = extract_six_digit(soup)
+        six, no_draw = extract_six_digit(soup)
         if six:
-            print(f"  Found six_digit={six}")
-            return six
-        print("  Page loaded but 'เลข 6 ตัว' pattern not found in it.")
+            print(f"    Found six_digit={six}")
+            return six, "found"
+        if no_draw:
+            print("    Page explicitly says no draw was held this date.")
+            return None, "no_draw"
+        print("    Page loaded but 'เลข 6 ตัว' pattern not found in it.")
 
-    print(f"Attempt 2: listing page fallback")
+    print("  Attempt 2: listing page fallback")
     article_url = find_via_listing(target_date)
     if article_url:
         soup = fetch(article_url)
         if soup:
-            six = extract_six_digit(soup)
+            six, no_draw = extract_six_digit(soup)
             if six:
-                print(f"  Found six_digit={six}")
-                return six
-            print("  Article loaded but 'เลข 6 ตัว' pattern not found in it.")
+                print(f"    Found six_digit={six}")
+                return six, "found"
+            if no_draw:
+                print("    Page explicitly says no draw was held this date.")
+                return None, "no_draw"
+            print("    Article loaded but 'เลข 6 ตัว' pattern not found in it.")
 
-    return None
+    return None, "not_found"
 
 
-def append_if_new(csv_path: str, draw_date: date, six_digit: str) -> bool:
-    """Append a row unless that date is already present. Returns True if written."""
-    date_str = draw_date.isoformat()
-    existing_dates = set()
+def load_existing_dates(csv_path: str) -> set[str]:
+    existing = set()
     try:
         with open(csv_path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
-                existing_dates.add(row["draw_date"])
+                existing.add(row["draw_date"])
     except FileNotFoundError:
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(["draw_date", "six_digit"])
+    return existing
 
-    if date_str in existing_dates:
-        print(f"{date_str} already present in {csv_path}, skipping.")
-        return False
 
+def append_row(csv_path: str, draw_date: date, six_digit: str) -> None:
     with open(csv_path, "a", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow([date_str, six_digit])
-    print(f"Appended {date_str},{six_digit} to {csv_path}")
-    return True
+        csv.writer(f).writerow([draw_date.isoformat(), six_digit])
+    print(f"  Appended {draw_date.isoformat()},{six_digit} to {csv_path}")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--date", help="YYYY-MM-DD (default: today)")
+    parser.add_argument(
+        "--start-offset", type=int, default=1,
+        help="Days before today to START backfilling from (default 1 = yesterday, "
+             "since today's result may not be posted yet when this runs)."
+    )
+    parser.add_argument(
+        "--days-back", type=int, default=7,
+        help="How many calendar days to check, counting back from --start-offset "
+             "(default 7, so ~3 draw days are covered even with weekends skipped)."
+    )
     parser.add_argument("--out", default="data/real_draws.csv")
     args = parser.parse_args()
 
-    target_date = (
-        datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else date.today()
+    existing_dates = load_existing_dates(args.out)
+
+    found_count = 0
+    no_draw_count = 0
+    missed_count = 0
+    already_have_count = 0
+
+    for i in range(args.start_offset, args.start_offset + args.days_back):
+        target_date = date.today() - timedelta(days=i)
+        date_str = target_date.isoformat()
+
+        if date_str in existing_dates:
+            print(f"{date_str}: already in {args.out}, skipping")
+            already_have_count += 1
+            continue
+
+        if target_date.weekday() not in (0, 2, 4):  # Mon/Wed/Fri only
+            print(f"{date_str}: not a scheduled draw day (Mon/Wed/Fri only), skipping")
+            no_draw_count += 1
+            continue
+
+        print(f"{date_str}: scraping...")
+        six_digit, status = scrape_for_date(target_date)
+
+        if status == "found":
+            append_row(args.out, target_date, six_digit)
+            existing_dates.add(date_str)
+            found_count += 1
+        elif status == "no_draw":
+            print(f"{date_str}: no draw held this date (confirmed by page) — not an error")
+            no_draw_count += 1
+        else:
+            print(f"{date_str}: could not find or extract a result — leaving for next run")
+            missed_count += 1
+
+    print(
+        f"\nSummary: {found_count} new draw(s) added, {no_draw_count} confirmed "
+        f"no-draw day(s), {missed_count} unresolved, {already_have_count} already "
+        f"had data."
     )
-
-    print(f"Scraping Lao lottery result for {target_date.isoformat()}...")
-    six_digit = scrape_for_date(target_date)
-
-    if six_digit is None:
-        print(
-            "Could not find a result for this date (maybe no draw that day, "
-            "or the site's page structure changed). Exiting without error "
-            "so the rest of the pipeline still runs on existing data."
-        )
-        sys.exit(0)
-
-    append_if_new(args.out, target_date, six_digit)
+    # Always exit 0 — a scrape miss should never fail the whole pipeline;
+    # the rest of the workflow still runs on whatever data already exists.
+    sys.exit(0)
 
 
 if __name__ == "__main__":

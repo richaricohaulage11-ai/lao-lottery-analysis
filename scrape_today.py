@@ -90,7 +90,23 @@ def extract_six_digit(soup: BeautifulSoup) -> tuple[str | None, bool]:
     if NO_DRAW_RE.search(text):
         return None, True
     match = SIX_DIGIT_RE.search(text)
-    return (match.group(1) if match else None), False
+    if match:
+        return match.group(1), False
+
+    # DEBUG: extraction failed — dump what's actually on the page so the
+    # regex can be fixed against real content instead of guessed blind.
+    print("    [DEBUG] 'เลข 6 ตัว' not found. Page text around any 'เลข' occurrence:")
+    found_any = False
+    for m in re.finditer("เลข", text):
+        start = max(0, m.start() - 20)
+        end = min(len(text), m.start() + 80)
+        print(f"      ...{text[start:end]}...")
+        found_any = True
+    if not found_any:
+        print("    [DEBUG] No occurrence of 'เลข' anywhere on the page at all.")
+        print(f"    [DEBUG] First 1500 chars of page text: {text[:1500]}")
+
+    return None, False
 
 
 def find_via_listing(target_date: date) -> str | None:
@@ -110,7 +126,18 @@ def find_via_listing(target_date: date) -> str | None:
                 href = "https://www.sanook.com" + href
             print(f"    Listing match for {date_needle}: {href}")
             return href
+
     print(f"    No listing link found containing '{date_needle}'")
+    # DEBUG: dump the first ~20 links' text + href so the real date format
+    # used on the listing page can be seen and matched against.
+    links = soup.find_all("a", href=True)
+    print(f"    [DEBUG] Page has {len(links)} links total. First 20 with non-empty text:")
+    shown = 0
+    for a in links:
+        text = a.get_text(" ", strip=True)
+        if text and shown < 20:
+            print(f"      href={a['href']!r}  text={text[:80]!r}")
+            shown += 1
     return None
 
 

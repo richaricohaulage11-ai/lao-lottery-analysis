@@ -1,0 +1,51 @@
+name: Lao Lottery Analysis
+
+# Runs for free on GitHub's hosted runners (2,000 min/month free on public
+# repos, and also free on private repos for personal accounts within the
+# same quota). Triggers:
+#   - on a schedule (edit the cron line below)
+#   - manually, via the "Run workflow" button in the Actions tab
+#   - on every push to main, so you see results after each code change
+on:
+  schedule:
+    - cron: "30 13 * * 1,3,5"   # 13:30 UTC = 20:30 Thailand time, Mon/Wed/Fri
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # needed so the workflow can commit updated data/reports back
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Scrape today's result
+        run: python scrape_today.py --out data/real_draws.csv
+
+      - name: Run analysis + backtest
+        run: python main.py --data data/real_draws.csv
+
+      - name: Prepare GitHub Pages folder
+        run: |
+          mkdir -p docs
+          cp output/dashboard.html docs/index.html
+
+      - name: Commit updated reports and dashboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/ data/ docs/
+          git diff --cached --quiet || git commit -m "Auto-update analysis reports and dashboard [skip ci]"
+          git push

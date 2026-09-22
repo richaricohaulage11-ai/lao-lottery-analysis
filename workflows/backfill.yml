@@ -1,0 +1,66 @@
+name: Backfill Historical Data
+
+# Manual trigger only. The regular "Lao Lottery Analysis" workflow only
+# checks the last 7 days each run (light, fast, safe to run on a
+# schedule). This workflow is for pulling MONTHS of history in one go,
+# which the regular workflow was never meant to do automatically (that
+# would mean hundreds of requests on every scheduled run).
+#
+# Run this once to build up a real dataset, then let the regular
+# scheduled workflow keep it updated day by day from there.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'How many calendar days of history to scan (e.g. 180 = ~6 months, 365 = ~1 year)'
+        required: true
+        default: '180'
+        type: string
+      delay_seconds:
+        description: 'Seconds to wait between each scraped date (politeness delay — do not set to 0 for large backfills)'
+        required: false
+        default: '1.5'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Backfill historical results
+        run: |
+          python scrape_today.py \
+            --start-offset 0 \
+            --days-back ${{ github.event.inputs.days_back }} \
+            --delay ${{ github.event.inputs.delay_seconds }} \
+            --out data/real_draws.csv
+
+      - name: Run analysis + backtest
+        run: python main.py --data data/real_draws.csv
+
+      - name: Prepare GitHub Pages folder
+        run: |
+          mkdir -p docs
+          cp output/dashboard.html docs/index.html
+
+      - name: Commit updated data, reports, and dashboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/ data/ docs/
+          git diff --cached --quiet || git commit -m "Backfill historical draws [skip ci]"
+          git push

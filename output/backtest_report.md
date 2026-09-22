@@ -10,7 +10,7 @@ Every strategy is walk-forward (no lookahead) and compared to the theoretical fa
 - [golden_ratio_sequence on two_digit] draws=729, k=5, hits=43/729 (5.90%), expected under fairness=5.00%, 95% CI=(4.30%, 7.86%), ROI=+6.2% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 
 ## Target: three_digit
-- [random_baseline on three_digit] draws=729, k=5, hits=4/729 (0.55%), expected under fairness=0.50%, 95% CI=(0.15%, 1.40%), ROI=-90.1% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
+- [random_baseline on three_digit] draws=729, k=5, hits=6/729 (0.82%), expected under fairness=0.50%, 95% CI=(0.30%, 1.78%), ROI=-85.2% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [hot_numbers on three_digit] draws=729, k=5, hits=2/729 (0.27%), expected under fairness=0.50%, 95% CI=(0.03%, 0.99%), ROI=-95.1% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [cold_numbers on three_digit] draws=729, k=5, hits=3/729 (0.41%), expected under fairness=0.50%, 95% CI=(0.08%, 1.20%), ROI=-92.6% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [last_draw_repeat on three_digit] draws=729, k=5, hits=3/729 (0.41%), expected under fairness=0.50%, 95% CI=(0.08%, 1.20%), ROI=-92.6% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)

@@ -3,7 +3,7 @@
 Every strategy is walk-forward (no lookahead) and compared to the theoretical fair-game expectation and to a random-baseline control. A strategy only has a demonstrated edge if its 95% confidence interval excludes the fair-game expected hit rate.
 
 ## Target: two_digit
-- [random_baseline on two_digit] draws=384, k=5, hits=22/384 (5.73%), expected under fairness=5.00%, 95% CI=(3.62%, 8.55%), ROI=+3.1% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
+- [random_baseline on two_digit] draws=384, k=5, hits=15/384 (3.91%), expected under fairness=5.00%, 95% CI=(2.20%, 6.36%), ROI=-29.7% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [hot_numbers on two_digit] draws=384, k=5, hits=17/384 (4.43%), expected under fairness=5.00%, 95% CI=(2.60%, 6.99%), ROI=-20.3% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [cold_numbers on two_digit] draws=384, k=5, hits=18/384 (4.69%), expected under fairness=5.00%, 95% CI=(2.80%, 7.31%), ROI=-15.6% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)
 - [last_draw_repeat on two_digit] draws=384, k=5, hits=20/384 (5.21%), expected under fairness=5.00%, 95% CI=(3.21%, 7.93%), ROI=-6.2% -> NOT statistically distinguishable from the random baseline (consistent with no real edge)

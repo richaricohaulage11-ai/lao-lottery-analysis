@@ -170,6 +170,17 @@ def _summary_block(df: pd.DataFrame, digit_positions: list[dict], joint: dict, b
     }
 
 
+def _timeline_block(df: pd.DataFrame, column: str = "two_digit") -> list[dict]:
+    """Chronological list of {date, value} for a visual timeline strip.
+    Capped at the most recent 1500 draws so the payload stays reasonable
+    even for a multi-year dataset."""
+    work = df.tail(1500)
+    return [
+        {"date": row["draw_date"].strftime("%Y-%m-%d"), "value": int(row[column])}
+        for _, row in work.iterrows()
+    ]
+
+
 def build_dashboard_data(
     df: pd.DataFrame,
     backtest_results_by_target: dict[str, list[BacktestResult]],
@@ -198,6 +209,7 @@ def build_dashboard_data(
             "three_digit": _runs_and_autocorr_block(df, "three_digit"),
         },
         "extended": _extended_block(df, alpha),
+        "timeline": _timeline_block(df, "two_digit"),
         "backtest_sensitivity": backtest_sensitivity_by_window(df, ALL_STRATEGIES, target_column="two_digit"),
         "k_payout_sensitivity": {
             "two_digit": k_and_payout_sensitivity(df, ALL_STRATEGIES, target_column="two_digit"),

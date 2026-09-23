@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หวยลาว — Randomness Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #EEF1EC;
+    --paper: #F8F9F5;
+    --ink: #1F2A24;
+    --ink-dim: #55645A;
+    --grid: #C9D1C6;
+    --flag: #B4432E;
+    --flag-bg: #F4E4DF;
+    --confirm: #3E6E5E;
+    --confirm-bg: #E3ECE7;
+    --data: #4A5D6B;
+    --data-2: #8E7A4A;
+    --data-3: #7A5C8E;
+    --radius: 3px;
+  }
+  :root:not([data-theme="light"]) {
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14180F;
+      --paper: #1B211A;
+      --ink: #E7EAE2;
+      --ink-dim: #9AA592;
+      --grid: #3A4436;
+      --flag: #E37A61;
+      --flag-bg: #3A2420;
+      --confirm: #7FBFA6;
+      --confirm-bg: #1F332B;
+      --data: #8FB0C4;
+      --data-2: #C9AE73;
+      --data-3: #B69AC9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14180F;
+    --paper: #1B211A;
+    --ink: #E7EAE2;
+    --ink-dim: #9AA592;
+    --grid: #3A4436;
+    --flag: #E37A61;
+    --flag-bg: #3A2420;
+    --confirm: #7FBFA6;
+    --confirm-bg: #1F332B;
+    --data: #8FB0C4;
+    --data-2: #C9AE73;
+    --data-3: #B69AC9;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans Thai", "IBM Plex Sans", sans-serif;
+    line-height: 1.55;
+  }
+  .num, table, .stat, .tab-bar { font-family: "IBM Plex Mono", "IBM Plex Sans Thai", monospace; }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 28px;
+  }
+  header.masthead .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  header.masthead h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .meta-strip strong { color: var(--ink); }
+  .synthetic-warning {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--flag-bg);
+    border-left: 3px solid var(--flag);
+    color: var(--ink);
+    font-size: 14px;
+    border-radius: var(--radius);
+  }
+
+  .tldr-card {
+    background: var(--paper);
+    border: 1px solid var(--grid);
+    border-left: 4px solid var(--data);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+  }
+  .tldr-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+  }
+  .tldr-body {
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+  .tldr-body .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin: 0 2px;
+  }
+  .tldr-body .pill.random { background: var(--confirm-bg); color: var(--confirm); }
+  .tldr-body .pill.significant { background: var(--flag-bg); color: var(--flag); }
+
+  .quicknav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 32px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 10px 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--grid);
+  }
+  .quicknav a {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid var(--grid);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .quicknav a:hover {
+    color: var(--ink);
+    border-color: var(--ink-dim);
+  }
+
+  section { margin-bottom: 44px; scroll-margin-top: 60px; }
+  section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 19px;
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--grid);
+    padding-bottom: 8px;
+  }
+  section h2 .sec-num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+    color: var(--ink-dim);
+  }
+  section > p.lede {
+    color: var(--ink-dim);
+    font-size: 14.5px;
+    max-width: 68ch;
+    margin: 10px 0 18px;
+  }
+
+  .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 720px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--grid);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .card .card-title {
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  .verdict {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    padding: 2px 7px;
+    border-radius: var(--radius);
+    margin-top: 6px;
+  }
+  .verdict.significant { background: var(--flag-bg); color: var(--flag); }
+  .verdict.random { background: var(--confirm-bg); color: var(--confirm); }
+  canvas { max-width: 100%; }
+
+  .tab-bar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--grid);
+  }
+  .tab-btn {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    background: none;
+    border: none;
+    padding: 8px 14px;
+    cursor: pointer;
+    color: var(--ink-dim);
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  .heatmap {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 2px;
+    max-width: 320px;
+  }
+  .heatmap .cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    position: relative;
+  }
+  .heatmap .cell:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    padding: 2px 5px;
+    white-space: nowrap;
+    border-radius: 2px;
+    z-index: 5;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table th, table td {
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--grid);
+  }
+  table th {
+    font-weight: 500;
+    color: var(--ink-dim);
+    font-family: "IBM Plex Sans Thai", sans-serif;
+  }
+  table td.num { text-align: right; }
+
+  footer {
+    border-top: 1px solid var(--grid);
+    padding-top: 16px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+  footer ul { margin: 8px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">LAO LOTTERY — STATISTICAL RANDOMNESS AUDIT</div>
+    <h1>หวยลาว: การทดสอบความสุ่มและ Backtest</h1>
+    <div class="meta-strip">
+      <span>งวดที่วิเคราะห์: <strong id="meta-n">—</strong></span>
+      <span>ช่วงวันที่: <strong id="meta-range">—</strong></span>
+      <span>α = <strong id="meta-alpha">0.05</strong></span>
+    </div>
+    <div class="synthetic-warning" id="synthetic-warning" style="display:none;">
+      ⚠ ข้อมูลชุดนี้เป็นข้อมูลสังเคราะห์ (synthetic) สำหรับสาธิตการทำงานเท่านั้น
+      แทนที่ด้วยข้อมูลจริงก่อนสรุปผลในรายงานวิจัย
+    </div>
+  </header>
+
+  <div class="tldr-card" id="tldr-card">
+    <div class="tldr-title">สรุปสั้นๆ</div>
+    <div class="tldr-body" id="tldr-body">กำลังโหลด...</div>
+  </div>
+
+  <nav class="quicknav">
+    <a href="#sec-digits">§1 รายหลัก</a>
+    <a href="#sec-joint">§2 กระจายตัวร่วม</a>
+    <a href="#sec-runs">§3 Runs/ACF</a>
+    <a href="#sec-extended">§4 วิธีเสริม</a>
+    <a href="#sec-sensitivity">§5 สัดส่วนทองคำ</a>
+    <a href="#sec-backtest">§6 Backtest</a>
+    <a href="#sec-kpayout">§7 จำนวนเลข/อัตราจ่าย</a>
+  </nav>
+
+  <section id="sec-digits">
+    <h2><span class="sec-num">§1</span> ความสม่ำเสมอรายหลัก (Marginal uniformity)</h2>
+    <p class="lede">ทดสอบว่าแต่ละหลัก (0–9) ของเลข 4 ตัวที่ออก กระจายตัวสม่ำเสมอหรือไม่ ด้วย chi-square goodness-of-fit</p>
+    <div class="grid-4" id="digit-cards"></div>
+  </section>
+
+  <section id="sec-joint">
+    <h2><span class="sec-num">§2</span> การกระจายตัวร่วม (Joint distribution)</h2>
+    <p class="lede">ทดสอบว่ากลุ่มของหลักที่ประกอบเป็นแต่ละรางวัล (ซึ่งมาจากเลข 4 ตัวชุดเดียวกัน) กระจายตัวสม่ำเสมอร่วมกันหรือไม่ — จับความสัมพันธ์ระหว่างหลักที่การทดสอบรายหลักอาจมองไม่เห็น</p>
+    <div class="tab-bar" id="joint-tabs"></div>
+    <div id="joint-panels"></div>
+  </section>
+
+  <section id="sec-runs">
+    <h2><span class="sec-num">§3</span> Runs test &amp; Autocorrelation</h2>
+    <p class="lede">ทดสอบว่าลำดับการออกของแต่ละรางวัลมีรูปแบบซ้ำ/สลับผิดปกติหรือไม่</p>
+    <table id="runs-table">
+      <thead><tr><th>รางวัล</th><th>Odd/Even runs (z, p)</th><th>Above/Below median (z, p)</th><th>ACF nอกช่วง 95%</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="sec-extended">
+    <h2><span class="sec-num">§4</span> วิธีเพิ่มเติม: KS-test, Entropy, รูปแบบตามช่วงเวลา</h2>
+    <p class="lede">วิธีทางสถิติเสริมสำหรับความครบถ้วนของงานวิจัย — ทดสอบความสุ่มด้วยมุมมองอื่น และเช็คว่ามีรูปแบบตามเดือน/ปี/วันในสัปดาห์หรือไม่</p>
+
+    <div class="grid-4" id="ks-cards" style="margin-bottom:22px;"></div>
+
+    <div class="card" style="margin-bottom:22px;">
+      <div class="card-title">Shannon Entropy (ยิ่งใกล้ 1.0 ยิ่งใกล้การสุ่มสมบูรณ์แบบ)</div>
+      <table id="entropy-table">
+        <thead><tr><th>รางวัล</th><th>Entropy (bits)</th><th>Max entropy</th><th>Ratio</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="tab-bar" id="homogeneity-tabs"></div>
+    <div id="homogeneity-panels" style="margin-bottom:22px;"></div>
+
+    <div class="card">
+      <div class="card-title">แนวโน้มค่าเฉลี่ยรายเดือน (2 ตัว) — เพื่อดูว่า "รูปแบบ" ที่เห็นด้วยตาเป็นแค่สัญญาณรบกวนหรือไม่</div>
+      <canvas id="monthly-trend-chart" height="80"></canvas>
+    </div>
+  </section>
+
+  <section id="sec-sensitivity">
+    <h2><span class="sec-num">§5</span> ความไวต่อขนาดตัวอย่าง อิงลำดับฟีโบนักชี → สัดส่วนทองคำ</h2>
+    <p class="lede">
+      ทดสอบซ้ำด้วยขนาดตัวอย่างต่างกัน (10–400 งวดล่าสุด) โดยเลือกขนาดตามลำดับฟีโบนักชี
+      (13, 21, 34, 55, 89, 144, 233, 377) เพราะอัตราส่วนของเลขฟีโบนักชีที่ติดกัน
+      <strong>ลู่เข้าสู่สัดส่วนทองคำ (φ ≈ 1.6180339887)</strong> — ให้ดูว่าข้อสรุปเรื่องความสุ่ม
+      "คงที่" ไม่ว่าจะมองข้อมูลกี่งวดหรือไม่ (robustness check)
+    </p>
+
+    <div class="card" style="margin-bottom:22px;">
+      <div class="card-title">การลู่เข้าสู่สัดส่วนทองคำของอัตราส่วนฟีโบนักชี (พื้นฐานทางคณิตศาสตร์ของขนาดตัวอย่างที่เลือกใช้)</div>
+      <table id="phi-convergence-table">
+        <thead><tr><th>คู่เลขฟีโบนักชี</th><th>อัตราส่วน (b/a)</th><th>ห่างจาก φ</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom:22px;">
+      <div class="card-title">Chi-square p-value และ Entropy ratio ตามขนาดตัวอย่าง (2 ตัว)</div>
+      <canvas id="sensitivity-chart" height="90"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ตารางผลตามขนาดตัวอย่าง</div>
+      <table id="sensitivity-table">
+        <thead><tr><th>n งวดล่าสุด</th><th>chi²</th><th>p-value</th><th>Entropy ratio</th><th>ผล</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="sec-backtest">
+    <h2><span class="sec-num">§6</span> Backtest: กลยุทธ์เลือกเลขเทียบกับการสุ่ม (รวมกลยุทธ์อิงสัดส่วนทองคำ)</h2>
+    <p class="lede">ทุกกลยุทธ์รันแบบ walk-forward (เห็นเฉพาะข้อมูลก่อนหน้า ไม่มี lookahead) เทียบกับ baseline สุ่มและค่าคาดหวังทางทฤษฎี</p>
+    <div class="tab-bar" id="backtest-tabs"></div>
+    <div id="backtest-panels"></div>
+
+    <div class="card" style="margin-top:22px;">
+      <div class="card-title">Backtest ตามขนาดตัวอย่างย่อย (10–50 งวดล่าสุด) — เช็คว่าผลคงที่ไหมในช่วงข้อมูลน้อย</div>
+      <p style="font-size:13px; color:var(--ink-dim); margin-top:0;">
+        รันซ้ำเฉพาะ N งวดล่าสุด (N = 10, 15, 20, ..., 50) แยกจาก backtest หลักด้านบนซึ่งใช้ข้อมูลทั้งหมด
+        — ที่ขนาดตัวอย่างเล็กขนาดนี้ พลังทางสถิติต่ำมาก โอกาสถูก/ไม่ถูกเพียง 1-2 ครั้งสามารถทำให้ ROI
+        กระโดดขึ้นลงแรงได้ (เช่น hit 1 ครั้งจาก 7 ครั้ง = ROI +200%) — นี่คือตัวอย่างจริงว่าทำไมต้องใช้
+        ข้อมูลอย่างน้อย 35+ งวดถึงจะสรุปอะไรได้อย่างมั่นใจ ไม่ใช่หลักฐานว่ากลยุทธ์นั้นใช้ได้จริง
+      </p>
+      <canvas id="backtest-sensitivity-chart" height="90"></canvas>
+    </div>
+  </section>
+
+  <section id="sec-kpayout">
+    <h2><span class="sec-num">§7</span> จำนวนเลขที่แทง (k) และอัตราจ่ายจริงเทียบกับอัตราจ่ายเป็นธรรม</h2>
+    <p class="lede">
+      คำถาม: ถ้าแทงหลายเลขต่องวดแทนที่จะแทงเลขเดียว ผลเปลี่ยนไหม? และอัตราจ่ายจริงกับอัตราจ่าย
+      "เป็นธรรม" (ไม่มี house edge) ต่างกันแค่ไหน?
+    </p>
+
+    <div class="card" id="house-edge-callout" style="margin-bottom:20px;"></div>
+
+    <div class="tab-bar" id="kpayout-tabs"></div>
+    <div id="kpayout-panels"></div>
+  </section>
+
+  <footer>
+    <strong>ข้อควรระวัง</strong>
+    <ul>
+      <li>3 ตัว / 2 ตัว ล้วนมาจากเลข 4 ตัวชุดเดียวกัน (ตัดหลักหน้าออกตามลำดับ) ไม่ใช่การสุ่มอิสระแยกกัน</li>
+      <li>ผลที่มีนัยสำคัญเพียงจุดเดียวจากหลายการทดสอบ อาจเป็นผลจาก multiple testing ไม่ใช่ความไม่สุ่มจริง</li>
+      <li>Backtest ที่ไม่พบกลยุทธ์ใดเอาชนะการสุ่มได้ สอดคล้องกับทฤษฎีความน่าจะเป็นสำหรับการสุ่มที่เป็นอิสระ</li>
+      <li>กลยุทธ์อิงสัดส่วนทองคำ (golden ratio sequence) เป็นเทคนิคทางคณิตศาสตร์จริง (ใช้ในสุ่มตัวอย่างแบบ low-discrepancy) แต่ไม่มีความเกี่ยวข้องกับการทำนายการสุ่มอิสระ — ผลการทดสอบในหน้านี้คือหลักฐานเชิงประจักษ์ของข้อจำกัดนี้</li>
+    </ul>
+  </footer>
+
+</div>
+
+<script type="application/json" id="dashboard-data">/*__DASHBOARD_DATA_JSON__*/</script>
+
+<script>
+// Data is embedded as inert JSON text (not raw JS), specifically so a
+// malformed payload can never produce a silent, page-breaking syntax
+// error — worst case, JSON.parse throws below and we show a visible
+// on-page error instead of a blank dashboard.
+let DATA = null;
+try {
+  DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
+} catch (err) {
+  document.querySelector('.wrap').insertAdjacentHTML('afterbegin', `
+    <div style="background:var(--flag-bg); color:var(--flag); border-left:3px solid var(--flag);
+                padding:12px 14px; margin-bottom:20px; font-family:'IBM Plex Mono',monospace; font-size:13px;">
+      ⚠ โหลดข้อมูลไม่สำเร็จ (${err.message}). ไฟล์ dashboard.html อาจถูกสร้างไม่สมบูรณ์ —
+      ลองรัน <code>python main.py</code> ใหม่แล้วเปิดไฟล์ output/dashboard.html อีกครั้ง
+      หรือดูรายงาน .md แทน.
+    </div>
+  `);
+}
+
+if (DATA) {
+
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function fmtPct(x) { return (x * 100).toFixed(2) + '%'; }
+function fmtP(x) { return x < 0.0001 ? '<0.0001' : x.toFixed(4); }
+
+// Runs `fn` in isolation: a failure in one section (e.g. the charting CDN
+// failing to load) is logged and shown inline, but never blanks the rest
+// of the page — every other section still renders independently.
+function section(label, fn) {
+  try {
+    fn();
+  } catch (err) {
+    console.error(`[dashboard] ${label} failed:`, err);
+    const el = document.getElementById(`sec-${label}`);
+    if (el) {
+      const note = document.createElement('p');
+      note.style.cssText = 'color:var(--flag); font-size:13px; font-family:"IBM Plex Mono",monospace;';
+      note.textContent = `⚠ ส่วนนี้แสดงผลไม่สำเร็จ (${err.message}). ลองรีเฟรชหน้า หรือดูรายงาน .md แทน.`;
+      el.appendChild(note);
+    }
+  }
+}
+
+// Draws a Chart.js chart only if the library actually loaded (it's loaded
+// from a CDN — a slow connection, ad-blocker, or network filter can
+// legitimately block it). Falls back to a plain-text note instead of
+// throwing, so the rest of the page keeps working either way.
+function safeChart(canvasId, config, fallbackParentId) {
+  if (typeof Chart === 'undefined') {
+    const parent = document.getElementById(fallbackParentId);
+    if (parent) {
+      const note = document.createElement('p');
+      note.style.cssText = 'color:var(--ink-dim); font-size:12px;';
+      note.textContent = '(กราฟโหลดไม่สำเร็จ — ไลบรารี Chart.js อาจถูกบล็อกโดยเครือข่ายหรือ ad-blocker; ตัวเลขด้านบน/ตารางยังถูกต้อง)';
+      parent.appendChild(note);
+    }
+    return null;
+  }
+  const canvas = document.getElementById(canvasId);
+  return canvas ? new Chart(canvas, config) : null;
+}
+
+// ---- Header meta ----
+section('header', () => {
+  document.getElementById('meta-n').textContent = DATA.meta.n_draws;
+  document.getElementById('meta-range').textContent = DATA.meta.date_start + ' – ' + DATA.meta.date_end;
+  document.getElementById('meta-alpha').textContent = DATA.meta.alpha;
+  if (DATA.meta.is_synthetic) {
+    document.getElementById('synthetic-warning').style.display = 'block';
+  }
+});
+
+// ---- TL;DR summary card ----
+section('tldr', () => {
+  const s = DATA.summary;
+  const randomPillClass = s.randomness_verdict.startsWith('สอดคล้อง') ? 'random'
+    : s.randomness_verdict.startsWith('ยังไม่มี') ? 'random' : 'significant';
+  const randomPill = `<span class="pill ${randomPillClass}">${s.randomness_verdict}</span>`;
+  const backtestPill = s.has_backtest
+    ? `<span class="pill ${s.backtest_verdict.startsWith('ไม่มี') ? 'random' : 'significant'}">${s.backtest_verdict}</span>`
+    : `<span class="pill random">${s.backtest_verdict}</span>`;
+
+  document.getElementById('tldr-body').innerHTML = `
+    จากข้อมูล <strong>${s.n_draws}</strong> งวด: การทดสอบความสุ่ม (${s.sig_count}/${s.total_tests} รายการมีนัยสำคัญ)
+    ${randomPill}
+    <br>
+    ผลการ backtest กลยุทธ์เลือกเลข: ${backtestPill}
+  `;
+});
+
+// ---- §1 Digit position cards ----
+section('digits', () => {
+  const digitCardsEl = document.getElementById('digit-cards');
+  DATA.digit_positions.forEach((d, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-title">ตำแหน่งหลักที่ ${d.position} (0=ซ้ายสุด)</div>
+      <canvas id="digit-chart-${idx}" height="120"></canvas>
+      <div class="verdict ${d.significant ? 'significant' : 'random'}">
+        chi²=${d.chi2.toFixed(2)}, p=${fmtP(d.p)} ${d.significant ? '— มีนัยสำคัญ' : '— สอดคล้องกับสุ่ม'}
+      </div>
+    `;
+    digitCardsEl.appendChild(card);
+  });
+  DATA.digit_positions.forEach((d, idx) => {
+    safeChart(`digit-chart-${idx}`, {
+      type: 'bar',
+      data: {
+        labels: [0,1,2,3,4,5,6,7,8,9],
+        datasets: [{ data: d.freq, backgroundColor: cssVar('--data'), borderRadius: 2 }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: cssVar('--grid') } } }
+      }
+    }, 'digit-cards');
+  });
+});
+
+// ---- §2 Joint distribution tabs ----
+section('joint', () => {
+  const jointTargets = [
+    { key: 'two_digit', label: '2 ตัว' },
+    { key: 'three_digit', label: '3 ตัว' },
+    { key: 'four_digit', label: '4 ตัว' },
+  ];
+  const jointTabsEl = document.getElementById('joint-tabs');
+  const jointPanelsEl = document.getElementById('joint-panels');
+
+  jointTargets.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = t.label;
+    btn.onclick = () => switchTab(jointTabsEl, jointPanelsEl, i);
+    jointTabsEl.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'tab-panel' + (i === 0 ? ' active' : '');
+    const j = DATA.joint[t.key];
+
+    let heatmapHtml = '';
+    if (j.digits === 2) {
+      const maxCount = Math.max(...j.freq);
+      heatmapHtml = '<div class="heatmap">' + j.freq.map((c, n) => {
+        const intensity = maxCount > 0 ? c / maxCount : 0;
+        const num = String(n).padStart(2, '0');
+        return `<div class="cell" data-tip="${num}: ${c}" style="background: color-mix(in srgb, var(--data) ${Math.round(intensity*90)}%, var(--paper));"></div>`;
+      }).join('') + '</div>';
+    } else {
+      heatmapHtml = `<p style="color:var(--ink-dim); font-size:13px;">
+        ${t.label} มี ${j.freq.length.toLocaleString()} ค่าที่เป็นไปได้ — heatmap แบบเต็มไม่เหมาะกับพื้นที่แสดงผล
+        ดูสรุปผล chi-square ด้านขวาแทน${j.low_n_warning ? ' (คำเตือน: จำนวนข้อมูลต่อหมวดอาจน้อยเกินไปสำหรับการทดสอบนี้)' : ''}.
+      </p>`;
+    }
+
+    panel.innerHTML = `
+      <div class="two-col">
+        <div>${heatmapHtml}</div>
+        <div class="card">
+          <div class="card-title">Chi-square goodness-of-fit (${t.label})</div>
+          <table>
+            <tr><td>สถิติ chi²</td><td class="num">${j.chi2.toFixed(2)}</td></tr>
+            <tr><td>p-value</td><td class="num">${fmtP(j.p)}</td></tr>
+            <tr><td>จำนวนหมวด</td><td class="num">${j.freq.length}</td></tr>
+          </table>
+          <div class="verdict ${j.significant ? 'significant' : 'random'}">
+            ${j.significant ? 'เบี่ยงเบนจากสุ่มอย่างมีนัยสำคัญ' : 'สอดคล้องกับการกระจายตัวแบบสุ่ม'}
+          </div>
+        </div>
+      </div>
+    `;
+    jointPanelsEl.appendChild(panel);
+  });
+});
+
+// ---- §3 Runs & autocorrelation table ----
+section('runs', () => {
+  const runsBody = document.querySelector('#runs-table tbody');
+  ['two_digit', 'three_digit'].forEach((key) => {
+    const r = DATA.runs_autocorr[key];
+    const label = key === 'two_digit' ? '2 ตัว' : '3 ตัว';
+    const row = document.createElement('tr');
+    if (!r) {
+      row.innerHTML = `
+        <td>${label}</td>
+        <td colspan="3" style="color:var(--ink-dim);">ข้อมูลยังไม่พอ (ต้องการอย่างน้อย 15 งวด)</td>
+      `;
+    } else {
+      const outside = r.acf.filter(v => Math.abs(v) > 1.96/Math.sqrt(DATA.meta.n_draws)).length;
+      row.innerHTML = `
+        <td>${label}</td>
+        <td class="num">z=${r.odd_even.z.toFixed(2)}, p=${fmtP(r.odd_even.p)}</td>
+        <td class="num">z=${r.median.z.toFixed(2)}, p=${fmtP(r.median.p)}</td>
+        <td class="num">${outside}/10</td>
+      `;
+    }
+    runsBody.appendChild(row);
+  });
+});
+
+// ---- §4 Extended methods: KS test, entropy, homogeneity, monthly trend ----
+section('extended', () => {
+  const ext = DATA.extended;
+  const labelFor = { two_digit: '2 ตัว', three_digit: '3 ตัว', four_digit: '4 ตัว' };
+
+  // KS test cards
+  const ksEl = document.getElementById('ks-cards');
+  ext.ks_tests.forEach((k) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-title">KS-test: ${labelFor[k.column] || k.column}</div>
+      <table>
+        <tr><td>D statistic</td><td class="num">${k.statistic.toFixed(4)}</td></tr>
+        <tr><td>p-value</td><td class="num">${fmtP(k.p)}</td></tr>
+      </table>
+      <div class="verdict ${k.significant ? 'significant' : 'random'}">
+        ${k.significant ? 'เบี่ยงเบนจากสุ่ม' : 'สอดคล้องกับสุ่ม'}
+      </div>
+    `;
+    ksEl.appendChild(card);
+  });
+
+  // Entropy table
+  const entropyBody = document.querySelector('#entropy-table tbody');
+  ext.entropy.forEach((e) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${labelFor[e.column] || e.column}</td>
+      <td class="num">${e.entropy.toFixed(3)}</td>
+      <td class="num">${e.max_entropy.toFixed(3)}</td>
+      <td class="num">${e.ratio.toFixed(4)}</td>
+    `;
+    entropyBody.appendChild(row);
+  });
+
+  // Homogeneity tabs (month / year / weekday)
+  const homoTabsEl = document.getElementById('homogeneity-tabs');
+  const homoPanelsEl = document.getElementById('homogeneity-panels');
+  const homoLabels = { month: 'รายเดือน', year: 'รายปี', weekday: 'วันในสัปดาห์' };
+  const homoKeys = Object.keys(ext.homogeneity);
+
+  homoKeys.forEach((key, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = homoLabels[key] || key;
+    btn.onclick = () => switchTab(homoTabsEl, homoPanelsEl, i);
+    homoTabsEl.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'tab-panel' + (i === 0 ? ' active' : '');
+    const rows = ext.homogeneity[key];
+
+    if (!rows || rows.length === 0) {
+      panel.innerHTML = `<p style="color:var(--ink-dim); font-size:13px;">ข้อมูลยังไม่พอสำหรับการจัดกลุ่มแบบนี้ (ต้องการอย่างน้อย 2 กลุ่ม)</p>`;
+    } else {
+      const rowsHtml = rows.map(r => `
+        <tr>
+          <td>ตำแหน่งหลักที่ ${r.position}</td>
+          <td class="num">${r.statistic.toFixed(2)}</td>
+          <td class="num">${fmtP(r.p)}</td>
+          <td class="num">${r.dof}</td>
+          <td class="num">${r.n_groups}</td>
+          <td><span class="verdict ${r.significant ? 'significant' : 'random'}">${r.significant ? 'ต่างกันตามกลุ่ม' : 'สม่ำเสมอ'}</span>${r.low_n_warning ? ' <span style="color:var(--ink-dim); font-size:11px;">(ตัวอย่างน้อย)</span>' : ''}</td>
+        </tr>
+      `).join('');
+      panel.innerHTML = `
+        <table>
+          <thead><tr><th>ตำแหน่ง</th><th>chi²</th><th>p-value</th><th>dof</th><th>จำนวนกลุ่ม</th><th>ผล</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+    homoPanelsEl.appendChild(panel);
+  });
+
+  // Monthly trend chart (two_digit mean per month)
+  const monthly = ext.monthly_trend.two_digit;
+  if (monthly && monthly.length > 1) {
+    new Chart(document.getElementById('monthly-trend-chart'), {
+      type: 'line',
+      data: {
+        labels: monthly.map(m => m.label),
+        datasets: [{
+          label: 'ค่าเฉลี่ย 2 ตัว รายเดือน',
+          data: monthly.map(m => m.mean),
+          borderColor: cssVar('--data'),
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 2,
+          tension: 0.2,
+        }, {
+          label: 'ค่าคาดหวังทางทฤษฎี (49.5)',
+          data: monthly.map(() => 49.5),
+          borderColor: cssVar('--confirm'),
+          borderDash: [4, 4],
+          borderWidth: 1,
+          pointRadius: 0,
+        }]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'IBM Plex Mono', size: 11 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+          y: { grid: { color: cssVar('--grid') }, min: 0, max: 99 }
+        }
+      }
+    });
+  } else {
+    document.getElementById('monthly-trend-chart').outerHTML =
+      '<p style="color:var(--ink-dim); font-size:13px;">ข้อมูลยังไม่พอสำหรับกราฟแนวโน้มรายเดือน (ต้องการอย่างน้อย 2 เดือนที่มีข้อมูล)</p>';
+  }
+});
+
+// ---- §5 Window sensitivity (Fibonacci / golden ratio) ----
+section('sensitivity', () => {
+  const ext = DATA.extended;
+
+  // Golden ratio convergence table
+  const phiBody = document.querySelector('#phi-convergence-table tbody');
+  ext.golden_ratio_convergence.forEach((row) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${row.a} : ${row.b}</td>
+      <td class="num">${row.ratio.toFixed(6)}</td>
+      <td class="num">${row.diff_from_phi.toFixed(6)}</td>
+    `;
+    phiBody.appendChild(tr);
+  });
+  // Add the target row
+  const phiRow = document.createElement('tr');
+  phiRow.innerHTML = `<td colspan="3" style="text-align:center; color:var(--confirm); font-weight:600;">φ (สัดส่วนทองคำ) = 1.618034...</td>`;
+  phiBody.appendChild(phiRow);
+
+  // Sensitivity table + chart
+  const sens = ext.window_sensitivity;
+  const sensBody = document.querySelector('#sensitivity-table tbody');
+  sens.forEach((row) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${row.n}</td>
+      <td class="num">${row.chi2.toFixed(2)}</td>
+      <td class="num">${fmtP(row.p)}</td>
+      <td class="num">${row.entropy_ratio.toFixed(4)}</td>
+      <td><span class="verdict ${row.significant ? 'significant' : 'random'}">${row.significant ? 'มีนัยสำคัญ' : 'สอดคล้องสุ่ม'}</span></td>
+    `;
+    sensBody.appendChild(tr);
+  });
+
+  if (sens.length > 1) {
+    new Chart(document.getElementById('sensitivity-chart'), {
+      data: {
+        labels: sens.map(r => r.n),
+        datasets: [
+          {
+            type: 'line', label: 'p-value', yAxisID: 'y_p',
+            data: sens.map(r => r.p),
+            borderColor: cssVar('--data'), backgroundColor: 'transparent',
+            borderWidth: 1.5, pointRadius: 3, tension: 0.15,
+          },
+          {
+            type: 'line', label: 'Entropy ratio', yAxisID: 'y_entropy',
+            data: sens.map(r => r.entropy_ratio),
+            borderColor: cssVar('--data-3'), backgroundColor: 'transparent',
+            borderWidth: 1.5, pointRadius: 3, tension: 0.15,
+          },
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'IBM Plex Mono', size: 11 } } } },
+        scales: {
+          x: { title: { display: true, text: 'จำนวนงวดล่าสุด (n)', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { display: false } },
+          y_p: { position: 'left', min: 0, max: 1, grid: { color: cssVar('--grid') }, title: { display: true, text: 'p-value' } },
+          y_entropy: { position: 'right', min: 0, max: 1, grid: { display: false }, title: { display: true, text: 'Entropy ratio' } },
+        }
+      }
+    });
+  } else {
+    document.getElementById('sensitivity-chart').outerHTML =
+      '<p style="color:var(--ink-dim); font-size:13px;">ข้อมูลยังไม่พอสำหรับกราฟนี้ (ต้องการอย่างน้อย 2 ขนาดตัวอย่าง เช่น 13 และ 21 งวด)</p>';
+  }
+});
+
+// ---- §6 Backtest tabs ----
+section('backtest', () => {
+  const backtestTargets = Object.keys(DATA.backtest);
+  const backtestLabels = { two_digit: '2 ตัว', three_digit: '3 ตัว', four_digit: '4 ตัว' };
+  const btTabsEl = document.getElementById('backtest-tabs');
+  const btPanelsEl = document.getElementById('backtest-panels');
+
+  if (backtestTargets.length === 0) {
+    btPanelsEl.innerHTML = `
+      <div class="card">
+        <div class="card-title">ยังไม่มี backtest</div>
+        <p style="margin:0; font-size:13.5px;">
+          ข้อมูลยังมีไม่พอสำหรับ backtest แบบ walk-forward (ต้องการงวดมากกว่าค่า warm-up ที่ตั้งไว้)
+          — ส่วนนี้จะขึ้นข้อมูลอัตโนมัติเมื่อสะสมงวดจริงมากพอ
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  backtestTargets.forEach((target, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = backtestLabels[target] || target;
+    btn.onclick = () => switchTab(btTabsEl, btPanelsEl, i);
+    btTabsEl.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'tab-panel' + (i === 0 ? ' active' : '');
+    const results = DATA.backtest[target];
+
+    const strategyLabels = {
+      random_baseline: 'สุ่มล้วน (baseline)',
+      hot_numbers: 'เลขฮิต (Hot numbers)',
+      cold_numbers: 'เลขเย็น (Cold numbers)',
+      last_draw_repeat: 'เลขซ้ำงวดล่าสุด',
+      golden_ratio_sequence: 'อิงสัดส่วนทองคำ (φ)',
+    };
+    const rowsHtml = results.map(r => `
+      <tr>
+        <td>${strategyLabels[r.strategy] || r.strategy}</td>
+        <td class="num">${r.hits}/${r.n}</td>
+        <td class="num">${fmtPct(r.hit_rate)}</td>
+        <td class="num">${fmtPct(r.expected)}</td>
+        <td class="num">${fmtPct(r.ci_low)}–${fmtPct(r.ci_high)}</td>
+        <td class="num">${r.roi_pct >= 0 ? '+' : ''}${r.roi_pct.toFixed(1)}%</td>
+        <td><span class="verdict ${r.significant ? 'significant' : 'random'}">${r.significant ? 'มีนัยสำคัญ' : 'ไม่ต่างจากสุ่ม'}</span></td>
+      </tr>
+    `).join('');
+
+    panel.innerHTML = `
+      <table style="margin-bottom:18px;">
+        <thead><tr>
+          <th>กลยุทธ์</th><th>Hits</th><th>Hit rate</th><th>Expected</th><th>95% CI</th><th>ROI</th><th>ผล</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      <canvas id="backtest-chart-${i}" height="90"></canvas>
+    `;
+    btPanelsEl.appendChild(panel);
+  });
+
+  backtestTargets.forEach((target, i) => {
+    const results = DATA.backtest[target];
+    const palette = [cssVar('--data'), cssVar('--data-2'), cssVar('--flag'), cssVar('--confirm'), cssVar('--data-3')];
+    safeChart(`backtest-chart-${i}`, {
+      type: 'line',
+      data: {
+        labels: results[0].cumulative_bankroll.map((_, idx) => idx + 1),
+        datasets: results.map((r, ri) => ({
+          label: r.strategy,
+          data: r.cumulative_bankroll,
+          borderColor: palette[ri % palette.length],
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.1,
+        }))
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'IBM Plex Mono', size: 11 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+          y: { grid: { color: cssVar('--grid') } }
+        }
+      }
+    }, 'backtest-panels');
+  });
+});
+
+// ---- §6b Backtest sensitivity (10-50 draws) ----
+section('backtest_sensitivity', () => {
+  const rows = DATA.backtest_sensitivity;
+  if (!rows || rows.length === 0) {
+    document.getElementById('backtest-sensitivity-chart').outerHTML =
+      '<p style="color:var(--ink-dim); font-size:13px;">ข้อมูลยังไม่พอสำหรับกราฟนี้ (ต้องการอย่างน้อย ~13 งวด)</p>';
+    return;
+  }
+
+  const strategyLabels = {
+    random_baseline: 'สุ่มล้วน (baseline)',
+    hot_numbers: 'เลขฮิต',
+    cold_numbers: 'เลขเย็น',
+    last_draw_repeat: 'เลขซ้ำงวดล่าสุด',
+    golden_ratio_sequence: 'อิงสัดส่วนทองคำ (φ)',
+  };
+  const strategyOrder = ['random_baseline', 'hot_numbers', 'cold_numbers', 'last_draw_repeat', 'golden_ratio_sequence'];
+  const palette = [cssVar('--data'), cssVar('--data-2'), cssVar('--flag'), cssVar('--confirm'), cssVar('--data-3')];
+  const windows = [...new Set(rows.map(r => r.window))].sort((a, b) => a - b);
+
+  const datasets = strategyOrder
+    .filter(s => rows.some(r => r.strategy === s))
+    .map((s, i) => ({
+      label: strategyLabels[s] || s,
+      data: windows.map(w => {
+        const match = rows.find(r => r.window === w && r.strategy === s);
+        return match ? match.roi_pct : null;
+      }),
+      borderColor: palette[i % palette.length],
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 3,
+      spanGaps: true,
+      tension: 0.15,
+    }));
+
+  new Chart(document.getElementById('backtest-sensitivity-chart'), {
+    type: 'line',
+    data: { labels: windows, datasets },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'IBM Plex Mono', size: 11 } } } },
+      scales: {
+        x: { title: { display: true, text: 'ขนาดตัวอย่าง (N งวดล่าสุด)', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { display: false } },
+        y: { title: { display: true, text: 'ROI (%)' }, grid: { color: cssVar('--grid') } },
+      }
+    }
+  });
+});
+
+// ---- §7 k-value x payout scenario sensitivity ----
+section('kpayout', () => {
+  const targets = Object.keys(DATA.k_payout_sensitivity);
+  const targetLabels = { two_digit: '2 ตัว', three_digit: '3 ตัว' };
+  const scenarioLabels = { real: 'อัตราจ่ายจริง (จากเว็บ)', fair: 'อัตราจ่ายเป็นธรรม (ไม่มี house edge)' };
+  const strategyLabels = {
+    random_baseline: 'สุ่มล้วน (baseline)',
+    hot_numbers: 'เลขฮิต',
+    cold_numbers: 'เลขเย็น',
+    last_draw_repeat: 'เลขซ้ำงวดล่าสุด',
+    golden_ratio_sequence: 'อิงสัดส่วนทองคำ (φ)',
+  };
+  const strategyOrder = ['random_baseline', 'hot_numbers', 'cold_numbers', 'last_draw_repeat', 'golden_ratio_sequence'];
+  const palette = [cssVar('--data'), cssVar('--data-2'), cssVar('--flag'), cssVar('--confirm'), cssVar('--data-3')];
+
+  // House-edge callout, computed directly from the payout numbers
+  const p = DATA.payout_scenarios;
+  const edgeRows = Object.keys(p.real).map(t => {
+    const edge = (1 - p.real[t] / p.fair[t]) * 100;
+    return `<strong>${targetLabels[t] || t}</strong>: จ่ายจริง ${p.real[t]}x เทียบกับเป็นธรรม ${p.fair[t]}x → house edge ≈ <strong style="color:var(--flag);">${edge.toFixed(0)}%</strong>`;
+  }).join(' &nbsp;•&nbsp; ');
+  document.getElementById('house-edge-callout').innerHTML = `
+    <div class="card-title">House edge จากอัตราจ่ายจริง (คำนวณตรงจากตัวเลขที่ประกาศ ไม่ใช่จากข้อมูลการออก)</div>
+    <div style="font-size:14px; line-height:1.7;">${edgeRows}</div>
+    <p style="font-size:12.5px; color:var(--ink-dim); margin:8px 0 0;">
+      นี่คือผลตอบแทนคาดหวังของผู้เล่นแบบสุ่มล้วน ไม่ว่าจะแทงกี่เลขต่องวดก็ตาม (ROI คาดหวังไม่ขึ้นกับ k
+      ในทางทฤษฎี — เปลี่ยนเฉพาะความแปรปรวน/ความสม่ำเสมอของผลที่สังเกตได้จริง ดูตารางด้านล่าง)
+    </p>
+  `;
+
+  const tabsEl = document.getElementById('kpayout-tabs');
+  const panelsEl = document.getElementById('kpayout-panels');
+
+  // Build (target, scenario) combinations as tabs
+  const combos = [];
+  targets.forEach(t => {
+    Object.keys(DATA.k_payout_sensitivity[t]).forEach(scenario => {
+      combos.push({ target: t, scenario });
+    });
+  });
+
+  if (combos.every(c => DATA.k_payout_sensitivity[c.target][c.scenario].length === 0)) {
+    panelsEl.innerHTML = `<div class="card"><p style="margin:0; font-size:13.5px;">ข้อมูลยังไม่พอสำหรับส่วนนี้ (ต้องการมากกว่า 35 งวด — เหมือนกับ backtest หลักใน §6)</p></div>`;
+    return;
+  }
+
+  combos.forEach((combo, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = `${targetLabels[combo.target] || combo.target} · ${scenarioLabels[combo.scenario] || combo.scenario}`;
+    btn.onclick = () => switchTab(tabsEl, panelsEl, i);
+    tabsEl.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'tab-panel' + (i === 0 ? ' active' : '');
+    const rows = DATA.k_payout_sensitivity[combo.target][combo.scenario];
+
+    if (rows.length === 0) {
+      panel.innerHTML = `<p style="color:var(--ink-dim); font-size:13px;">ข้อมูลยังไม่พอ</p>`;
+    } else {
+      const kValues = [...new Set(rows.map(r => r.k))].sort((a, b) => a - b);
+      const strategiesPresent = strategyOrder.filter(s => rows.some(r => r.strategy === s));
+
+      const tableRows = strategiesPresent.map(s => {
+        const cells = kValues.map(k => {
+          const match = rows.find(r => r.k === k && r.strategy === s);
+          if (!match) return '<td class="num">—</td>';
+          const cls = match.significant ? 'significant' : 'random';
+          return `<td class="num"><span class="verdict ${cls}" style="padding:1px 6px;">${match.roi_pct >= 0 ? '+' : ''}${match.roi_pct.toFixed(1)}%</span></td>`;
+        }).join('');
+        return `<tr><td>${strategyLabels[s] || s}</td>${cells}</tr>`;
+      }).join('');
+
+      panel.innerHTML = `
+        <table style="margin-bottom:18px;">
+          <thead><tr><th>กลยุทธ์</th>${kValues.map(k => `<th class="num">k=${k}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <canvas id="kpayout-chart-${i}" height="90"></canvas>
+      `;
+    }
+    panelsEl.appendChild(panel);
+  });
+
+  combos.forEach((combo, i) => {
+    const rows = DATA.k_payout_sensitivity[combo.target][combo.scenario];
+    if (rows.length === 0) return;
+    const kValues = [...new Set(rows.map(r => r.k))].sort((a, b) => a - b);
+    const strategiesPresent = strategyOrder.filter(s => rows.some(r => r.strategy === s));
+
+    const datasets = strategiesPresent.map((s, si) => ({
+      label: strategyLabels[s] || s,
+      data: kValues.map(k => {
+        const match = rows.find(r => r.k === k && r.strategy === s);
+        return match ? match.roi_pct : null;
+      }),
+      borderColor: palette[si % palette.length],
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 3,
+      spanGaps: true,
+      tension: 0.15,
+    }));
+
+    new Chart(document.getElementById(`kpayout-chart-${i}`), {
+      type: 'line',
+      data: { labels: kValues, datasets },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'IBM Plex Mono', size: 11 } } } },
+        scales: {
+          x: { title: { display: true, text: 'จำนวนเลขที่แทงต่องวด (k)', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { display: false } },
+          y: { title: { display: true, text: 'ROI (%)' }, grid: { color: cssVar('--grid') } },
+        }
+      }
+    });
+  });
+});
+
+// ---- Tab switching helper ----
+function switchTab(tabBarEl, panelsEl, index) {
+  [...tabBarEl.children].forEach((b, i) => b.classList.toggle('active', i === index));
+  [...panelsEl.children].forEach((p, i) => p.classList.toggle('active', i === index));
+}
+
+} // end if (DATA)
+</script>
+</body>
+</html>

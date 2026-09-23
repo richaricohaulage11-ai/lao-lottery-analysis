@@ -163,17 +163,42 @@
     color: var(--ink);
     border-color: var(--ink-dim);
   }
+  .expand-all-btn {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 5px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
 
   section { margin-bottom: 44px; scroll-margin-top: 60px; }
+  section.collapsed > *:not(h2) { display: none; }
   section h2 {
     display: flex;
     align-items: baseline;
     gap: 10px;
+    cursor: pointer;
+    user-select: none;
     font-size: 19px;
     margin: 0 0 6px;
     border-bottom: 1px solid var(--grid);
     padding-bottom: 8px;
   }
+  section h2 .toggle-arrow {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    color: var(--ink-dim);
+    transition: transform 0.15s;
+  }
+  section.collapsed h2 .toggle-arrow { transform: rotate(-90deg); }
+  section h2:hover .toggle-arrow { color: var(--ink); }
+
   section h2 .sec-num {
     font-family: "IBM Plex Mono", monospace;
     font-size: 14px;
@@ -363,6 +388,7 @@
     <a href="#sec-sensitivity">§5 สัดส่วนทองคำ</a>
     <a href="#sec-backtest">§6 Backtest</a>
     <a href="#sec-kpayout">§7 จำนวนเลข/อัตราจ่าย</a>
+    <button class="expand-all-btn" id="expand-all-btn" type="button">ขยายทั้งหมด</button>
   </nav>
 
   <section id="sec-digits">
@@ -1268,6 +1294,37 @@ function switchTab(tabBarEl, panelsEl, index) {
   [...tabBarEl.children].forEach((b, i) => b.classList.toggle('active', i === index));
   [...panelsEl.children].forEach((p, i) => p.classList.toggle('active', i === index));
 }
+
+// ---- Collapsible sections (reduces visual clutter on first load) ----
+section('collapsible-setup', () => {
+  const defaultOpenIds = ['sec-digits', 'sec-joint', 'sec-backtest'];
+  const sections = [...document.querySelectorAll('.wrap > section[id]')];
+
+  sections.forEach((sec) => {
+    const h2 = sec.querySelector(':scope > h2');
+    if (!h2) return;
+
+    const arrow = document.createElement('span');
+    arrow.className = 'toggle-arrow';
+    arrow.textContent = '▾';
+    h2.appendChild(arrow);
+
+    h2.addEventListener('click', () => sec.classList.toggle('collapsed'));
+
+    if (!defaultOpenIds.includes(sec.id)) {
+      sec.classList.add('collapsed');
+    }
+  });
+
+  const expandBtn = document.getElementById('expand-all-btn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      const anyCollapsed = sections.some(s => s.classList.contains('collapsed'));
+      sections.forEach(s => s.classList.toggle('collapsed', !anyCollapsed));
+      expandBtn.textContent = anyCollapsed ? 'ย่อทั้งหมด' : 'ขยายทั้งหมด';
+    });
+  }
+});
 
 } // end if (DATA)
 </script>

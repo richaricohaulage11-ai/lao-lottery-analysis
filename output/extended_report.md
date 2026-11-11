@@ -1,32 +1,32 @@
 # Extended Methods Report
 
 ## Kolmogorov-Smirnov goodness-of-fit (secondary check to chi-square)
-- two_digit KS-test vs uniform[0,100): D=0.0341, p=0.2293 -> consistent with uniform
-- three_digit KS-test vs uniform[0,1000): D=0.0163, p=0.9648 -> consistent with uniform
-- four_digit KS-test vs uniform[0,10000): D=0.0217, p=0.7730 -> consistent with uniform
+- two_digit KS-test vs uniform[0,100): D=0.0343, p=0.2227 -> consistent with uniform
+- three_digit KS-test vs uniform[0,1000): D=0.0157, p=0.9753 -> consistent with uniform
+- four_digit KS-test vs uniform[0,10000): D=0.0215, p=0.7803 -> consistent with uniform
 
 ## Shannon entropy (bits) vs. maximum possible entropy
 A ratio near 1.0 indicates the distribution is close to maximally random.
 - two_digit: entropy=6.565 bits, max=6.644 bits, ratio=0.9881
-- three_digit: entropy=9.060 bits, max=9.966 bits, ratio=0.9091
+- three_digit: entropy=9.060 bits, max=9.966 bits, ratio=0.9092
 
 ## Homogeneity across time groupings (does the pattern differ by month/year/weekday?)
 ### By month
-- four_digit position 0 by month: chi2=1016.769, p=0.1550, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
-- four_digit position 1 by month: chi2=970.173, p=0.5105, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
-- four_digit position 2 by month: chi2=947.257, p=0.7091, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
-- four_digit position 3 by month: chi2=959.525, p=0.6060, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
+- four_digit position 0 by month: chi2=1010.544, p=0.1900, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
+- four_digit position 1 by month: chi2=973.689, p=0.4787, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
+- four_digit position 2 by month: chi2=946.166, p=0.7177, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
+- four_digit position 3 by month: chi2=966.275, p=0.5458, dof=972, groups=109 -> distribution consistent across month [LOW SAMPLE WARNING]
 
 ### By year
-- four_digit position 0 by year: chi2=99.839, p=0.0763, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
-- four_digit position 1 by year: chi2=74.220, p=0.6899, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
-- four_digit position 2 by year: chi2=86.714, p=0.3118, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
-- four_digit position 3 by year: chi2=66.951, p=0.8690, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
+- four_digit position 0 by year: chi2=100.369, p=0.0713, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
+- four_digit position 1 by year: chi2=74.752, p=0.6741, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
+- four_digit position 2 by year: chi2=85.817, p=0.3360, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
+- four_digit position 3 by year: chi2=67.200, p=0.8642, dof=81, groups=10 -> distribution consistent across year [LOW SAMPLE WARNING]
 
 ### By weekday
-- four_digit position 0 by weekday: chi2=14.150, p=0.7192, dof=18, groups=3 -> distribution consistent across weekday
-- four_digit position 1 by weekday: chi2=22.753, p=0.2002, dof=18, groups=3 -> distribution consistent across weekday
-- four_digit position 2 by weekday: chi2=12.497, p=0.8205, dof=18, groups=3 -> distribution consistent across weekday
-- four_digit position 3 by weekday: chi2=14.948, p=0.6655, dof=18, groups=3 -> distribution consistent across weekday
+- four_digit position 0 by weekday: chi2=14.064, p=0.7249, dof=18, groups=3 -> distribution consistent across weekday
+- four_digit position 1 by weekday: chi2=22.700, p=0.2024, dof=18, groups=3 -> distribution consistent across weekday
+- four_digit position 2 by weekday: chi2=12.669, p=0.8109, dof=18, groups=3 -> distribution consistent across weekday
+- four_digit position 3 by weekday: chi2=14.928, p=0.6669, dof=18, groups=3 -> distribution consistent across weekday
 
 Interpretation: these test whether the draw's digit distribution shifts across months, years, or days of the week — a legitimate question for a physical or electronic draw mechanism, distinct from testing overall uniformity. As with the core chi-square tests, isolated significant results among many groups/positions tested are expected by chance and are not evidence of a real time-based pattern unless they replicate consistently.

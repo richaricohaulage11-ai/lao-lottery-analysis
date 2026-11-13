@@ -1,26 +1,26 @@
 # Randomness Test Report
 
-Draws analyzed: 920
-Date range: 2017-10-04 to 2026-11-09
+Draws analyzed: 921
+Date range: 2017-10-04 to 2026-11-11
 
 Reminder: every prize category below (5/4/3/2 ตัว) is a trailing slice of the SAME 4-digit draw (four_digit), not a separate random draw. See data_loader.py for exactly which digits map to which category.
 
 ## Part 1: Marginal chi-square, per digit position of four_digit
-- four_digit position 0 (marginal): chi2=14.022, p=0.1216, n=920, categories=10 -> consistent with uniform (fails to reject randomness)
-- four_digit position 1 (marginal): chi2=2.870, p=0.9692, n=920, categories=10 -> consistent with uniform (fails to reject randomness)
-- four_digit position 2 (marginal): chi2=5.152, p=0.8208, n=920, categories=10 -> consistent with uniform (fails to reject randomness)
-- four_digit position 3 (marginal): chi2=12.043, p=0.2109, n=920, categories=10 -> consistent with uniform (fails to reject randomness)
+- four_digit position 0 (marginal): chi2=14.060, p=0.1202, n=921, categories=10 -> consistent with uniform (fails to reject randomness)
+- four_digit position 1 (marginal): chi2=2.768, p=0.9728, n=921, categories=10 -> consistent with uniform (fails to reject randomness)
+- four_digit position 2 (marginal): chi2=4.874, p=0.8451, n=921, categories=10 -> consistent with uniform (fails to reject randomness)
+- four_digit position 3 (marginal): chi2=11.997, p=0.2135, n=921, categories=10 -> consistent with uniform (fails to reject randomness)
 
 ## Part 2: Joint/interaction chi-square on the derived prize categories
-- two_digit (2 digits, joint/interaction test): chi2=102.174, p=0.3934, n=920, categories=100 -> consistent with uniform (fails to reject randomness)
-- three_digit (3 digits, joint/interaction test): chi2=1021.304, p=0.3050, n=920, categories=1000 -> consistent with uniform (fails to reject randomness) [LOW SAMPLE WARNING: expected count per category < 5]
-- four_digit (4 digits, joint/interaction test): chi2=10123.478, p=0.1891, n=920, categories=10000 -> consistent with uniform (fails to reject randomness) [LOW SAMPLE WARNING: expected count per category < 5]
+- two_digit (2 digits, joint/interaction test): chi2=101.476, p=0.4122, n=921, categories=100 -> consistent with uniform (fails to reject randomness)
+- three_digit (3 digits, joint/interaction test): chi2=1021.454, p=0.3038, n=921, categories=1000 -> consistent with uniform (fails to reject randomness) [LOW SAMPLE WARNING: expected count per category < 5]
+- four_digit (4 digits, joint/interaction test): chi2=10121.345, p=0.1931, n=921, categories=10000 -> consistent with uniform (fails to reject randomness) [LOW SAMPLE WARNING: expected count per category < 5]
 
 ## Runs tests
-- two_digit odd/even: z=-0.462, p=0.6443 (consistent with random ordering)
-- two_digit above/below-median: z=-0.128, p=0.8979 (consistent with random ordering)
-- three_digit odd/even: z=-0.462, p=0.6443 (consistent with random ordering)
-- three_digit above/below-median: z=-0.858, p=0.3911 (consistent with random ordering)
+- two_digit odd/even: z=-0.429, p=0.6682 (consistent with random ordering)
+- two_digit above/below-median: z=-0.096, p=0.9235 (consistent with random ordering)
+- three_digit odd/even: z=-0.429, p=0.6682 (consistent with random ordering)
+- three_digit above/below-median: z=-0.890, p=0.3734 (consistent with random ordering)
 
 ## Autocorrelation (lags 1-10)
 - two_digit: 0/10 lags outside the ~95% band (±0.065); ~0-1 expected by chance alone.
